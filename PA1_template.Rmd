@@ -1,25 +1,78 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+### REPRODUCIBLE RESEARCH - ASSIGNMENT 1 - OLIVIER CHEMINAT
 
+-----------------------------------------------------------------
+This R Markdown document has been created for the first assignment of the "Reproducible research" course on Coursera website.
+-----------------------------------------------------------------
 
-## Loading and preprocessing the data
+1. Loading and preprocessing the data
+```{r, echo=FALSE}
+data <- read.csv("D:/TAF/JOHNS HOPKINS DATA SCIENCE SPECIALIZATION/5. REPRODUCIBLE RESEARCH/repdata-data-activity/activity.csv", sep = ",")
 
+data_clean <- na.omit(data)
+steps_mean <- with(data_clean, tapply(steps, date, mean, na.RM=TRUE))
 
+## steps_mean
+## hist(steps_mean)
 
-## What is mean total number of steps taken per day?
+library(datasets)
+```
 
+2. What is the mean total number of steps per day?
+```{r, echo=FALSE}
+with(data_clean, hist(steps_mean, col = "red", xlab = "Day"))
+mean(steps_mean, na.rm=TRUE)
+median(steps_mean, na.rm=TRUE)
+```
 
+3. What is the daily average activity pattern?
+```{r, echo=FALSE}
+data$interval <- as.character(as.numeric(data$interval))
+steps_int_mean <- with(data_clean, tapply(steps, interval, mean))
+with(data_clean, plot(steps_int_mean, type = "l", col = "blue", xlab = "5-minute interval"))
+means <- aggregate(steps ~ interval, data_clean, mean)
+with(data_clean, plot(means, type = "l", col = "blue", xlab = "5-minute interval"))
 
-## What is the average daily activity pattern?
+means[which(grepl(max(means[2]), means$steps)),1]
+```
 
+4. Imputing missing values.
+```{r, echo=FALSE}
+NAs <- function(x) {
+    as.vector(apply(x, 2, function(x) length(which(is.na(x)))))
+    }
+NAs(data)
 
+replace <- function (x, list, values) 
+{
+    x[list] <- values
+    x
+}
+non_NA_data <- data
+non_NA_data$steps <- replace(non_NA_data$steps, is.na(non_NA_data$steps), mean(non_NA_data$steps, na.rm=TRUE))
 
-## Imputing missing values
+steps_mean <- with(non_NA_data, tapply(steps, date, mean, na.RM=TRUE))
 
+with(non_NA_data, hist(steps_mean, col = "red", xlab = "Day"))
+mean(steps_mean, na.rm=TRUE)
+median(steps_mean, na.rm=TRUE)
+```
 
+5. Are there differences in activity patterns between weekdays and weekends?
+```{r, echo=FALSE}
+##non_NA_data$date <- as.Date(non_NA_data$date)
+##type_day <- weekdays(date, abbreviate = FALSE)
+##library(ggplot2)
 
-## Are there differences in activity patterns between weekdays and weekends?
+type_day <- weekdays(as.Date(non_NA_data$date), abbreviate = FALSE)
+
+type_day2 <- ifelse ((type_day == c("samedi") | type_day == c("dimanche")), c("weekend"), c("weekday"))
+
+data_td <- cbind(non_NA_data, type_day2)
+
+steps_int_mean <- aggregate(steps ~ interval + type_day2, data_td, mean)
+
+library(lattice)
+
+xyplot(steps ~ interval | type_day2, data = steps_int_mean, , layout=c(1,2), type ="l", outer = TRUE)
+
+```
